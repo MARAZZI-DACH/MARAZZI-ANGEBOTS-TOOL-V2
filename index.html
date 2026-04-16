@@ -517,7 +517,7 @@ function doPDF(){
   if(S.prom&&S.prom!=='Keine Angabe')headerData+=hR.replace('$$L$$','Objektberater:').replace('$$V$$',esc(S.prom));
   headerData+='</table>';
 
-  var pdfParts=[nr];if(S.bv)pdfParts.push(S.bv.trim());if(S.kunde)pdfParts.push(S.kunde.split('|')[0].trim());var pdfTitle=pdfParts.join(' - ');var pdf='<!DOCTYPE html><html><head><meta charset="utf-8"><title>'+esc(pdfTitle)+'</title>'+
+  var pdfParts=[nr];if(S.bv)pdfParts.push(S.bv.trim());if(S.kunde)pdfParts.push(S.kunde.split('|')[0].trim());var pdfTitle=pdfParts.join(' - ').replace(/\./g,'');var pdf='<!DOCTYPE html><html><head><meta charset="utf-8"><title>'+esc(pdfTitle)+'</title>'+
     '<style>'+
     '@page{size:A4 portrait;margin:12mm 10mm 12mm 10mm}'+
     'body{font-family:Aptos,Calibri,Arial,sans-serif;font-size:10pt;color:#333;margin:0;padding:0;-webkit-print-color-adjust:exact;print-color-adjust:exact}'+
