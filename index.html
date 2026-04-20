@@ -205,7 +205,7 @@ function calcNet(b,g,z1,z2,z3){return b*(1-g)*(1-z1)*(1-z2)*(1-z3)}
 function genNr(){
   var n=new Date();
   var ini=S.ini||'XX';
-  return ini+String(n.getDate()).padStart(2,'0')+String(n.getMonth()+1).padStart(2,'0')+String(n.getFullYear()).slice(-2)+S.lnr;
+  return ini+String(n.getFullYear()).slice(-2)+String(n.getMonth()+1).padStart(2,'0')+String(n.getDate()).padStart(2,'0')+S.lnr;
 }
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
 function zrLabel(v){var p=(v*100).toFixed(0)+'%';if(v===0.30)return p+' (Eigenbedarf)';if(v===0.50)return p+' (Muster)';return p}
