@@ -90,7 +90,13 @@ button{cursor:pointer}
   .wrap{padding:14px 10px}.card{padding:18px 14px}.fg{grid-template-columns:1fr}
   .sr{flex-direction:column}.sr select,.sr input{min-width:0;width:100%}
   .pt{font-size:10px}.pt th,.pt td{padding:4px 3px}
-  .opts-row{flex-direction:column;align-items:flex-start;gap:12px}
+ .opts-row{flex-direction:column;align-items:flex-start;gap:12px}
+
+  /* iPhone: User-Indikator kompakt — nur Initialen-Kreis sichtbar, Label und Name ausgeblendet */
+  /* Damit der MARAZZI-Header in einer Zeile bleibt und nicht umbricht */
+  #user-indicator > div:not(#user-initials){display:none !important}
+  #user-indicator{padding-right:12px !important;gap:0 !important}
+  .hdr .info{display:none !important}
 
   /* iPhone: Angebots-Liste als Karten statt Tabelle */
   #aufruf-tabelle{table-layout:auto !important}
