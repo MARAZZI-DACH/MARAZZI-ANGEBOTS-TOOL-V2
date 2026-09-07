@@ -1695,12 +1695,20 @@ async function ladeAngebote(append){
   if(datumBis) q = q.lte('angebots_datum', datumBis);
   if(kunde) q = q.ilike('kunde_name', '%' + kunde + '%');
   if(marke) q = q.eq('marke', marke);
-  if(bauvorhaben){
+    if(bauvorhaben){
     var bvWoerter = bauvorhaben.split(/\s+/).filter(function(w){return w.length > 0});
     bvWoerter.forEach(function(w){
       q = q.ilike('bauvorhaben', '%' + w + '%');
     });
   }
+
+  // Sieht der Volltext wie eine Angebotsnummer aus, serverseitig danach filtern,
+  // damit auch aeltere Angebote ausserhalb der letzten 50 gefunden werden
+  if(/^[a-z]{2}\d{6,10}[a-z]?$/i.test(volltext)){
+    q = q.ilike('angebots_nr', volltext + '%');
+  }
+
+  q = q.limit(50);
 
   q = q.limit(50);
 
@@ -2010,8 +2018,8 @@ function aufrufBindeFilter(){
     });
   });
 
-  document.getElementById('aufruf-mehr-laden').addEventListener('click', function(){
-    ladeAngebote(true);
+   document.getElementById('aufruf-mehr-laden').addEventListener('click', function(){
+    renderAngebote(true);
   });
 }
 async function naechsteVariante(parentId){
