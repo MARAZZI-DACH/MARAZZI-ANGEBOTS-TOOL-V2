@@ -1710,9 +1710,7 @@ async function ladeAngebote(append){
 
   q = q.limit(50);
 
-  q = q.limit(50);
-
-  try {
+    try {
     const { data, error } = await q;
     if(error){ console.error('ladeAngebote Fehler:', error); return; }
 
@@ -2018,7 +2016,7 @@ function aufrufBindeFilter(){
     });
   });
 
-   document.getElementById('aufruf-mehr-laden').addEventListener('click', function(){
+     document.getElementById('aufruf-mehr-laden').addEventListener('click', function(){
     renderAngebote(true);
   });
 }
