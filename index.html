@@ -377,7 +377,7 @@ button{cursor:pointer}
   </div>
   <div id="hinweis-box" class="hbox" style="display:none"></div>
   <div id="msg-box" class="msg" style="display:none"></div>
-  <div id="build-info" style="text-align:right;font-size:10px;color:#bbb;letter-spacing:0.3px;margin-top:6px">v2.1 &middot; Build 2026-10-24c &middot; Preisliste 2027 + Hinweisfeld + Datum + Objektart + Order Class</div>
+  <div id="build-info" style="text-align:right;font-size:10px;color:#bbb;letter-spacing:0.3px;margin-top:6px">v2.1 &middot; Build 2026-10-24d &middot; Preisliste 2027 + Hinweisfeld + Datum + Objektart + Order Class</div>
   <div class="ft" id="footer-info" style="display:none"></div>
 </div>
 
@@ -1619,8 +1619,18 @@ function doPDF(useOriginal){
 
     // AGB und Datenschutz als regulaere Konditionen-Punkte (ab Build 2026-10-24c);
     // vorher standen sie als graue Fusszeile unter dem Block.
-    var t_recht_agb = 'Es gelten die Allgemeinen Verkaufsbedingungen der Marazzi Group S.r.l., abrufbar unter marazzi.de/conditions-sale-and-purchase. Abweichenden Einkaufsbedingungen wird widersprochen; vorrangige Rahmenvertr\u00e4ge bleiben unber\u00fchrt.';
-    var t_recht_dsgvo = 'Informationen zur Verarbeitung personenbezogener Daten nach Art. 13 und 14 DSGVO: marazzi.de/privacy-policy';
+    var URL_AGB = 'https://www.marazzi.de/app/uploads/2023/10/mg_condizioni_generali_vendita_de.pdf';
+    var URL_DSGVO = 'https://www.marazzi.de/privacy/';
+    // Segmente: Teile mit link werden navy und anklickbar gesetzt.
+    var seg_recht_agb = [
+      { t: 'Es gelten die ' },
+      { t: 'Allgemeinen Verkaufsbedingungen', link: URL_AGB },
+      { t: ' der Marazzi Group S.r.l. Abweichenden Einkaufsbedingungen wird widersprochen; vorrangige Rahmenvertr\u00e4ge bleiben unber\u00fchrt.' }
+    ];
+    var seg_recht_dsgvo = [
+      { t: 'Informationen zur Verarbeitung personenbezogener Daten nach Art. 13 und 14 DSGVO: ' },
+      { t: 'marazzi.de/privacy', link: URL_DSGVO }
+    ];
 
     var hPreisvorbehalt = calcItemHeight(t_preisvorbehalt, bodyMaxW);
     var hPreisbasis = calcItemHeight(t_preisbasis, bodyMaxW);
@@ -1631,8 +1641,8 @@ function doPDF(useOriginal){
     var bestellLines = doc.splitTextToSize(t_bestellhinweis_full, bestellMaxW);
     var hBestellhinweis = titleToBodyGap + bestellLines.length * bodyLineH;
 
-    var hRechtAgb = calcItemHeight(t_recht_agb, bodyMaxW);
-    var hRechtDsgvo = calcItemHeight(t_recht_dsgvo, bodyMaxW);
+    var hRechtAgb = titleToBodyGap + layoutRich(seg_recht_agb, bodyMaxW).length * bodyLineH;
+    var hRechtDsgvo = titleToBodyGap + layoutRich(seg_recht_dsgvo, bodyMaxW).length * bodyLineH;
 
     // Linke Spalte: Preisvorbehalt + Nachbestellungen + Datenschutz
     var hLeftCol = hPreisvorbehalt + itemSpacing + hNachbestellungen + itemSpacing + hRechtDsgvo;
@@ -1671,6 +1681,62 @@ function doPDF(useOriginal){
 
     // === ITEMS ZEICHNEN ===
     var itemsStartY = kondY + 7;
+
+    // Umbruch fuer Texte mit eingebetteten Links. Liefert Zeilen aus Wort-Tokens.
+    // Muss vor der Hoehenberechnung UND beim Zeichnen das gleiche Ergebnis liefern.
+    function layoutRich(segs, maxW){
+      doc.setFont('Inter','normal');
+      doc.setFontSize(bodySize);
+      var spaceW = doc.getTextWidth(' ');
+      var zeilen = [[]], breite = 0;
+      segs.forEach(function(sg){
+        String(sg.t).split(/\s+/).forEach(function(wort){
+          if(!wort) return;
+          var ww = doc.getTextWidth(wort);
+          if(breite > 0 && breite + spaceW + ww > maxW){ zeilen.push([]); breite = 0; }
+          zeilen[zeilen.length-1].push({ t: wort, link: sg.link, w: ww, luecke: breite > 0 });
+          breite += (breite > 0 ? spaceW : 0) + ww;
+        });
+      });
+      return zeilen;
+    }
+
+    // Konditionen-Punkt, dessen Text anklickbare Stellen enthaelt
+    function drawKondItemRich(iconType, title, segs, x, y, maxW){
+      var iconCX = x + iconR;
+      var iconCY = y + iconR + 0.5;
+      doc.setFillColor(NAVY[0], NAVY[1], NAVY[2]);
+      doc.circle(iconCX, iconCY, iconR, 'F');
+      drawKondIcon(iconType, iconCX, iconCY);
+
+      var textX = x + 2*iconR + iconGap;
+      doc.setFont('Inter','bold');
+      doc.setFontSize(titleSize);
+      doc.setTextColor(NAVY[0],NAVY[1],NAVY[2]);
+      doc.text(title.toUpperCase().split('').join(' '), textX, y + 1.8);
+
+      doc.setFont('Inter','normal');
+      doc.setFontSize(bodySize);
+      var spaceW = doc.getTextWidth(' ');
+      var zeilen = layoutRich(segs, maxW);
+      var ty = y + titleToBodyGap + 1.5;
+      zeilen.forEach(function(zeile){
+        var cx = textX;
+        zeile.forEach(function(tok){
+          if(tok.luecke) cx += spaceW;
+          if(tok.link){
+            doc.setTextColor(NAVY[0], NAVY[1], NAVY[2]);
+            doc.textWithLink(tok.t, cx, ty, { url: tok.link });
+          } else {
+            doc.setTextColor(INK[0], INK[1], INK[2]);
+            doc.text(tok.t, cx, ty);
+          }
+          cx += tok.w;
+        });
+        ty += bodyLineH;
+      });
+      doc.setTextColor(INK[0], INK[1], INK[2]);
+    }
 
     function drawKondItem(iconType, title, text, x, y, maxW, boldBody){
       var iconCX = x + iconR;
@@ -1817,13 +1883,13 @@ function doPDF(useOriginal){
     drawKondItem('grid', 'Nachbestellungen', t_nachbestellungen,
                  kondCol1X, nachY, bodyMaxW, false);
 
-    // Rechts unten: AGB
-    drawKondItem('agb', 'AGB', t_recht_agb,
-                 kondCol2X, itemsStartY + hPreisbasis + itemSpacing, bodyMaxW, false);
+    // Rechts unten: AGB (mit anklickbarem Link)
+    drawKondItemRich('agb', 'AGB', seg_recht_agb,
+                 kondCol2X, itemsStartY + hPreisbasis + itemSpacing, bodyMaxW);
 
-    // Links unten: DATENSCHUTZ
-    drawKondItem('schild', 'Datenschutz', t_recht_dsgvo,
-                 kondCol1X, nachY + hNachbestellungen + itemSpacing, bodyMaxW, false);
+    // Links unten: DATENSCHUTZ (mit anklickbarem Link)
+    drawKondItemRich('schild', 'Datenschutz', seg_recht_dsgvo,
+                 kondCol1X, nachY + hNachbestellungen + itemSpacing, bodyMaxW);
 
     // Volle Breite ganz unten: BESTELLHINWEIS (FETT, mit roter Angebotsnummer)
     var bestellY = itemsStartY + hUpperBlock + bestellTopGap;
