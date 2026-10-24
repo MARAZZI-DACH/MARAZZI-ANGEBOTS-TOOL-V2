@@ -377,7 +377,7 @@ button{cursor:pointer}
   </div>
   <div id="hinweis-box" class="hbox" style="display:none"></div>
   <div id="msg-box" class="msg" style="display:none"></div>
-  <div id="build-info" style="text-align:right;font-size:10px;color:#bbb;letter-spacing:0.3px;margin-top:6px">v2.1 &middot; Build 2026-10-24b &middot; Preisliste 2027 + Hinweisfeld + Datum + Objektart + Order Class</div>
+  <div id="build-info" style="text-align:right;font-size:10px;color:#bbb;letter-spacing:0.3px;margin-top:6px">v2.1 &middot; Build 2026-10-24c &middot; Preisliste 2027 + Hinweisfeld + Datum + Objektart + Order Class</div>
   <div class="ft" id="footer-info" style="display:none"></div>
 </div>
 
@@ -1617,17 +1617,10 @@ function doPDF(useOriginal){
     var t_nachbestellungen = 'Die angebotenen Preise gelten ausschließlich bei Abnahme in vollen Paletten. Kleinere Mengen sind gesondert anzufragen.';
     var t_bestellhinweis_full = 'Bitte geben Sie bei Ihren Bestellungen stets die Angebotsnummer ' + String(nr) + ' sowie das jeweilige Bauvorhaben an. Nur so kann gewährleistet werden, dass die korrekten Preise berechnet werden. Alternativ legen Sie bitte dieses Angebot der Bestellung bei.';
 
-    // Rechtlicher Fusszeilen-Block unter den Konditionen
-    var t_recht_agb = 'AGB \u2014 Es gelten die Allgemeinen Verkaufsbedingungen der Marazzi Group S.r.l., abrufbar unter marazzi.de/conditions-sale-and-purchase. Abweichenden Einkaufsbedingungen des Bestellers wird widersprochen. Vorrangige Vereinbarungen aus bestehenden Rahmenvertr\u00e4gen bleiben unber\u00fchrt.';
-    var t_recht_dsgvo = 'Datenschutz \u2014 Informationen zur Verarbeitung personenbezogener Daten nach Art. 13 und 14 DSGVO: marazzi.de/privacy-policy';
-    var legalSize = 6;
-    var legalLineH = 2.35;
-    var legalTopGap = 3.6;
-    doc.setFont('Inter','normal');
-    doc.setFontSize(legalSize);
-    var legalLines = doc.splitTextToSize(t_recht_agb, contentW)
-                        .concat(doc.splitTextToSize(t_recht_dsgvo, contentW));
-    var hLegal = legalTopGap + legalLines.length * legalLineH;
+    // AGB und Datenschutz als regulaere Konditionen-Punkte (ab Build 2026-10-24c);
+    // vorher standen sie als graue Fusszeile unter dem Block.
+    var t_recht_agb = 'Es gelten die Allgemeinen Verkaufsbedingungen der Marazzi Group S.r.l., abrufbar unter marazzi.de/conditions-sale-and-purchase. Abweichenden Einkaufsbedingungen wird widersprochen; vorrangige Rahmenvertr\u00e4ge bleiben unber\u00fchrt.';
+    var t_recht_dsgvo = 'Informationen zur Verarbeitung personenbezogener Daten nach Art. 13 und 14 DSGVO: marazzi.de/privacy-policy';
 
     var hPreisvorbehalt = calcItemHeight(t_preisvorbehalt, bodyMaxW);
     var hPreisbasis = calcItemHeight(t_preisbasis, bodyMaxW);
@@ -1638,11 +1631,15 @@ function doPDF(useOriginal){
     var bestellLines = doc.splitTextToSize(t_bestellhinweis_full, bestellMaxW);
     var hBestellhinweis = titleToBodyGap + bestellLines.length * bodyLineH;
 
-    // Linke Spalte: Preisvorbehalt + Nachbestellungen mit Abstand
-    var hLeftCol = hPreisvorbehalt + itemSpacing + hNachbestellungen;
-    var hRightCol = hPreisbasis;
+    var hRechtAgb = calcItemHeight(t_recht_agb, bodyMaxW);
+    var hRechtDsgvo = calcItemHeight(t_recht_dsgvo, bodyMaxW);
+
+    // Linke Spalte: Preisvorbehalt + Nachbestellungen + Datenschutz
+    var hLeftCol = hPreisvorbehalt + itemSpacing + hNachbestellungen + itemSpacing + hRechtDsgvo;
+    // Rechte Spalte: Preisbasis + AGB
+    var hRightCol = hPreisbasis + itemSpacing + hRechtAgb;
     var hUpperBlock = Math.max(hLeftCol, hRightCol);
-    var totalKondHeight = 8 /*Header*/ + hUpperBlock + bestellTopGap + hBestellhinweis + hLegal;
+    var totalKondHeight = 8 /*Header*/ + hUpperBlock + bestellTopGap + hBestellhinweis;
 
     // === Y-POSITION berechnen — fix unten (mit zusätzlichem Abstand zur Seitenzahl) ===
     var kondMarginB = marginB + 5;  // 5mm extra Abstand nach unten
@@ -1731,6 +1728,21 @@ function doPDF(useOriginal){
         doc.rect(cx - 1.4*s, cy - 1.4*s, 2.8*s, 2.8*s, 'S');
         doc.line(cx, cy - 1.4*s, cx, cy + 1.4*s);
         doc.line(cx - 1.4*s, cy, cx + 1.4*s, cy);
+      } else if(type === 'agb'){
+        // Blatt mit drei Zeilen
+        doc.setDrawColor(255, 255, 255);
+        doc.setLineWidth(0.28);
+        doc.rect(cx - 1.05, cy - 1.35, 2.1, 2.7, 'S');
+        doc.setLineWidth(0.24);
+        doc.line(cx - 0.6, cy - 0.65, cx + 0.6, cy - 0.65);
+        doc.line(cx - 0.6, cy,        cx + 0.6, cy);
+        doc.line(cx - 0.6, cy + 0.65, cx + 0.2, cy + 0.65);
+      } else if(type === 'schild'){
+        // Schutzschild
+        doc.setDrawColor(255, 255, 255);
+        doc.setLineWidth(0.3);
+        doc.setLineJoin('round');
+        doc.lines([[2.4,0],[0,1.7],[-1.2,1.4],[-1.2,-1.4]], cx - 1.2, cy - 1.5, [1,1], 'S', true);
       } else if(type === 'exclaim'){
         doc.setFont('Inter', 'bold');
         doc.setFontSize(7);
@@ -1805,24 +1817,18 @@ function doPDF(useOriginal){
     drawKondItem('grid', 'Nachbestellungen', t_nachbestellungen,
                  kondCol1X, nachY, bodyMaxW, false);
 
+    // Rechts unten: AGB
+    drawKondItem('agb', 'AGB', t_recht_agb,
+                 kondCol2X, itemsStartY + hPreisbasis + itemSpacing, bodyMaxW, false);
+
+    // Links unten: DATENSCHUTZ
+    drawKondItem('schild', 'Datenschutz', t_recht_dsgvo,
+                 kondCol1X, nachY + hNachbestellungen + itemSpacing, bodyMaxW, false);
+
     // Volle Breite ganz unten: BESTELLHINWEIS (FETT, mit roter Angebotsnummer)
     var bestellY = itemsStartY + hUpperBlock + bestellTopGap;
     drawKondItemBestell(bestellY, bestellMaxW, String(nr));
 
-    // Rechtlicher Hinweis: duenne Trennlinie, darunter zwei graue Absaetze
-    var legalY = bestellY + hBestellhinweis + legalTopGap;
-    doc.setDrawColor(228, 228, 224);
-    doc.setLineWidth(0.2);
-    doc.line(marginL, legalY - 2.4, pageW - marginR, legalY - 2.4);
-    doc.setFont('Inter','normal');
-    doc.setFontSize(legalSize);
-    doc.setTextColor(MUTED[0], MUTED[1], MUTED[2]);
-    var legalCursor = legalY;
-    legalLines.forEach(function(line){
-      doc.text(line, marginL, legalCursor);
-      legalCursor += legalLineH;
-    });
-    doc.setTextColor(INK[0], INK[1], INK[2]);
 
     // ============================================================
     // === SEITENZAHLEN ===
