@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>Marazzi Angebots-Tool v2.1 | Build 2026-10-01c</title>
+<title>Marazzi Angebots-Tool v2.1 | Build 2026-10-24a</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect fill='%23cc0000' width='32' height='32' rx='6'/><text x='16' y='22' font-size='18' font-weight='900' fill='white' text-anchor='middle' font-family='Arial'>M</text></svg>">
 <style>
@@ -377,7 +377,7 @@ button{cursor:pointer}
   </div>
   <div id="hinweis-box" class="hbox" style="display:none"></div>
   <div id="msg-box" class="msg" style="display:none"></div>
-  <div id="build-info" style="text-align:right;font-size:10px;color:#bbb;letter-spacing:0.3px;margin-top:6px">v2.1 &middot; Build 2026-10-01c &middot; Preisliste 2027 + Hinweisfeld + Datum + Objektart + Order Class</div>
+  <div id="build-info" style="text-align:right;font-size:10px;color:#bbb;letter-spacing:0.3px;margin-top:6px">v2.1 &middot; Build 2026-10-24b &middot; Preisliste 2027 + Hinweisfeld + Datum + Objektart + Order Class</div>
   <div class="ft" id="footer-info" style="display:none"></div>
 </div>
 
@@ -399,6 +399,8 @@ function fmt(v){return v.toLocaleString('de-DE',{style:'currency',currency:'EUR'
 function calcNet(b,g,z1,z2,z3){return b*(1-g)*(1-z1)*(1-z2)*(1-z3)}
 
 // === PREISLISTE 2026 / 2027 =========================================
+// Wird auf false gesetzt, falls Supabase die Spalte such_text (noch) nicht kennt.
+var SUCHTEXT_SPALTE = true;
 var PL_TEXT_2026='Dieses Angebot basiert auf der Preisliste 2026 und gilt für Bestellungen bis einschließlich 30.11.2026. Bestellungen, die bis zu diesem Datum eingehen, können – vorbehaltlich der Warenverfügbarkeit – bis spätestens 15.01.2027 zu den Preisen der Preisliste 2026 verladen werden. Für alle Verladungen ab dem 16.01.2027 gilt ausschließlich die Preisliste 2027. Dies gilt auch für vorher nicht verfügbare Ware.';
 var PL_TEXT_2027='Dieses Angebot basiert auf der Preisliste 2027, gültig ab dem 01.12.2026.';
 var PL_WARN='Achtung, Bruttopreis 2027 ist noch nicht im Tool. Zu den Nettopreisen bitte intern klären.';
@@ -1615,6 +1617,18 @@ function doPDF(useOriginal){
     var t_nachbestellungen = 'Die angebotenen Preise gelten ausschließlich bei Abnahme in vollen Paletten. Kleinere Mengen sind gesondert anzufragen.';
     var t_bestellhinweis_full = 'Bitte geben Sie bei Ihren Bestellungen stets die Angebotsnummer ' + String(nr) + ' sowie das jeweilige Bauvorhaben an. Nur so kann gewährleistet werden, dass die korrekten Preise berechnet werden. Alternativ legen Sie bitte dieses Angebot der Bestellung bei.';
 
+    // Rechtlicher Fusszeilen-Block unter den Konditionen
+    var t_recht_agb = 'AGB \u2014 Es gelten die Allgemeinen Verkaufsbedingungen der Marazzi Group S.r.l., abrufbar unter marazzi.de/conditions-sale-and-purchase. Abweichenden Einkaufsbedingungen des Bestellers wird widersprochen. Vorrangige Vereinbarungen aus bestehenden Rahmenvertr\u00e4gen bleiben unber\u00fchrt.';
+    var t_recht_dsgvo = 'Datenschutz \u2014 Informationen zur Verarbeitung personenbezogener Daten nach Art. 13 und 14 DSGVO: marazzi.de/privacy-policy';
+    var legalSize = 6;
+    var legalLineH = 2.35;
+    var legalTopGap = 3.6;
+    doc.setFont('Inter','normal');
+    doc.setFontSize(legalSize);
+    var legalLines = doc.splitTextToSize(t_recht_agb, contentW)
+                        .concat(doc.splitTextToSize(t_recht_dsgvo, contentW));
+    var hLegal = legalTopGap + legalLines.length * legalLineH;
+
     var hPreisvorbehalt = calcItemHeight(t_preisvorbehalt, bodyMaxW);
     var hPreisbasis = calcItemHeight(t_preisbasis, bodyMaxW);
     var hNachbestellungen = calcItemHeight(t_nachbestellungen, bodyMaxW);
@@ -1628,7 +1642,7 @@ function doPDF(useOriginal){
     var hLeftCol = hPreisvorbehalt + itemSpacing + hNachbestellungen;
     var hRightCol = hPreisbasis;
     var hUpperBlock = Math.max(hLeftCol, hRightCol);
-    var totalKondHeight = 8 /*Header*/ + hUpperBlock + bestellTopGap + hBestellhinweis;
+    var totalKondHeight = 8 /*Header*/ + hUpperBlock + bestellTopGap + hBestellhinweis + hLegal;
 
     // === Y-POSITION berechnen — fix unten (mit zusätzlichem Abstand zur Seitenzahl) ===
     var kondMarginB = marginB + 5;  // 5mm extra Abstand nach unten
@@ -1795,6 +1809,21 @@ function doPDF(useOriginal){
     var bestellY = itemsStartY + hUpperBlock + bestellTopGap;
     drawKondItemBestell(bestellY, bestellMaxW, String(nr));
 
+    // Rechtlicher Hinweis: duenne Trennlinie, darunter zwei graue Absaetze
+    var legalY = bestellY + hBestellhinweis + legalTopGap;
+    doc.setDrawColor(228, 228, 224);
+    doc.setLineWidth(0.2);
+    doc.line(marginL, legalY - 2.4, pageW - marginR, legalY - 2.4);
+    doc.setFont('Inter','normal');
+    doc.setFontSize(legalSize);
+    doc.setTextColor(MUTED[0], MUTED[1], MUTED[2]);
+    var legalCursor = legalY;
+    legalLines.forEach(function(line){
+      doc.text(line, marginL, legalCursor);
+      legalCursor += legalLineH;
+    });
+    doc.setTextColor(INK[0], INK[1], INK[2]);
+
     // ============================================================
     // === SEITENZAHLEN ===
     // ============================================================
@@ -1942,17 +1971,43 @@ async function ladeAngebote(append){
     });
   }
 
-  // Sieht der Volltext wie eine Angebotsnummer aus, serverseitig danach filtern,
-  // damit auch aeltere Angebote ausserhalb der letzten 50 gefunden werden
-  if(/^[a-z]{2}\d{6,10}[a-z]?$/i.test(volltext)){
+  // ---------------------------------------------------------------------------
+  // Volltextsuche: serverseitig ueber die generierte Spalte such_text.
+  // such_text enthaelt Kunde, Adresse, Bauvorhaben, Ansprechpartner, Notiz,
+  // Ersteller, Kategorie, Marke UND die Positionen (Serie, Artikel, Kode).
+  // Die Angebotsnummer steht NICHT in such_text - Postgres erlaubt keine
+  // generierte Spalte innerhalb einer generierten Spalte. Sie wird darum
+  // bei jedem Suchwort als zweite Bedingung mitgeprueft (or).
+  // Jedes Wort muss vorkommen - "rabatte grande" findet also Angebote an
+  // Fliesenrabatte.de, in denen GRANDE enthalten ist.
+  // Fehlt die Spalte in Supabase, faellt die Suche automatisch auf die alte
+  // Variante zurueck (nur die geladenen Angebote, siehe Fehlerbehandlung unten).
+  var vtWoerterServer = volltext ? volltext.split(/\s+/).filter(function(w){return w.length > 0;}) : [];
+  if(vtWoerterServer.length && SUCHTEXT_SPALTE){
+    vtWoerterServer.forEach(function(w){
+      // Zeichen entfernen, die die or()-Syntax von Supabase zerlegen wuerden
+      var sicher = w.replace(/[,()"\\]/g, '');
+      if(!sicher) return;
+      q = q.or('such_text.ilike.%' + sicher + '%,angebots_nr.ilike.%' + sicher + '%');
+    });
+  } else if(/^[a-z]{2}\d{6,10}[a-z]?$/i.test(volltext)){
     q = q.ilike('angebots_nr', volltext + '%');
   }
 
-  q = q.limit(50);
+  // Bei aktiver Suche mehr Zeilen holen, sonst wie bisher
+  q = q.limit(volltext ? 100 : 50);
 
     try {
     const { data, error } = await q;
-    if(error){ console.error('ladeAngebote Fehler:', error); return; }
+    if(error){
+      if(SUCHTEXT_SPALTE && /such_text/i.test(String(error.message || ''))){
+        SUCHTEXT_SPALTE = false;
+        console.warn('Spalte such_text fehlt in Supabase - Volltextsuche vorerst nur ueber die geladenen Angebote.');
+        return ladeAngebote(append);
+      }
+      console.error('ladeAngebote Fehler:', error);
+      return;
+    }
 
     var gefiltert = (data || []).filter(function(a){
       var positionen = a.positionen || [];
@@ -2304,7 +2359,7 @@ async function naechsteVariante(parentId, kuerzel, datum, lfd){
     // gesamt_summe MUSS ueber getND() rechnen: der manuell eingetragene Nettopreis
     // schlaegt den aus Brutto und Rabatten errechneten. Sonst wird die gespeicherte
     // Summe bei Sonderartikeln und bei jeder Position mit manuellem Netto falsch
-    // (Sonderartikel haben kein Brutto -> Summe war 0,00). Fehler bis Build 2026-10-01c.
+    // (Sonderartikel haben kein Brutto -> Summe war 0,00). Fehler bis Build 2026-10-01a.
     const gesamt = angebotsSumme();
 var parentId = null;
     var varianteWert = null;
